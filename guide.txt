@@ -1,0 +1,14 @@
+El siguiente paso lógico para arrancar con Fly-in es estructurar el espacio de trabajo y crear el analizador de archivos (Parser).
+Como el proyecto exige orientación a objetos pura y tipado estricto, definir el diseño de tus clases desde el primer día te evitará reescribir código después.
+Esta es la hoja de ruta idónea para comenzar hoy mismo:1. Preparar el Entorno VirtualCrea y activa un entorno virtual de Python para aislar las dependencias (flake8, mypy, etc.):  Bashpython3 -m venv venv
+source venv/bin/activate  # En Linux/macOS
+Asegúrate de dejar el Makefile anterior y un .gitignore en la raíz para excluir la carpeta venv/ y las cachés.  2. Definir las Clases Base (Modelos)El enunciado te exige un diseño completamente orientado a objetos.
+Antes de programar la lógica del movimiento, crea un archivo (por ejemplo, models.py) con las estructuras de datos usando Type Hints:  Drone: Para rastrear el ID único de cada dron y su posición actual.
+Zone (o Hub): Con atributos para su nombre, coordenadas $(x, y)$, tipo (normal, restricted, etc.), capacidad máxima (max_drones) y una lista de los drones actualmente hospedados.
+Connection: Que actúe como los enlaces (aristas) entre las zonas, almacenando su capacidad máxima (max_link_capacity).  Graph: La clase contenedora que representará la red completa de zonas interconectadas.
+3. Implementar el Parser (El paso crítico)El programa debe detenerse inmediatamente con un mensaje de error claro ante cualquier fallo de sintaxis en el mapa.
+Enfócate en programar una clase Parser encargada de:  Leer el archivo línea por línea omitiendo los comentarios (#).  Validar que la primera línea tenga el número de drones (nb_drones: <int>).
+Instanciar los objetos Zone extrayendo correctamente sus metadatos en corchetes ([...]).  Validar que exista exactamente una zona de inicio (start_hub) y una de fin (end_hub).
+Construir las conexiones asegurando que enlacen únicamente zonas existentes y detectando duplicados. 
+¿Cómo comprobar que vas bien?Una vez que tengas listo tu Parser, usa tu Makefile para verificar la calidad del código:Bashmake lint
+Si flake8 y mypy no arrojan errores, estarás listo para dar el salto al diseño del algoritmo de búsqueda de caminos (Pathfinding) y el motor de simulación por turnos.  
