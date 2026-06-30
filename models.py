@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional
-from pydantic import BaseModel
 
-class Hub(BaseModel):
+
+class Hub:
     def __init__(
             self, name:str, x:int, y:int, zo_type:str = "normal"
             ) -> None:
@@ -9,7 +9,7 @@ class Hub(BaseModel):
         self.name: str = name
         self.x: int = x
         self.y: int = y
-        self.type: str = zo_type
+        self.zo_type: str = zo_type
 
 
 class Connection:
