@@ -75,9 +75,6 @@ def main() -> None:
         print("Uso: python3 -m tu_modulo mapa.txt", file=sys.stderr)
         sys.exit(1)
 
-
-
-
     drone_map = Drone_Map()
     parser = Parser(drone_map)
     parser.parse_file(sys.argv[1])
