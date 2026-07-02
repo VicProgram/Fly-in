@@ -28,6 +28,7 @@ class Parser:
             sys.exit(1)
 
     def parse_hub_content(self, content: str) -> tuple[str, int, int, str]:
+
         match_color = re.search(r"color=(\w+)", content)
         color = match_color.group(1) if match_color else "white"
 
@@ -36,17 +37,23 @@ class Parser:
 
         main_part = re.sub(r"\[.*?\]", "", content).strip()
         parts = main_part.split()
-
+        print(parts)
         if len(parts) != 3:
             raise ValueError(f"Formato de hub inválido: '{content}'")
 
         name, x_str, y_str = parts
         return name, int(x_str), int(y_str), color
 
+
     def parse_line(self, line: str, line_num: int) -> None:
+
         if line.startswith("nb_drones:"):
             self.nb_drones = int(line.split(":")[1].strip())
+            
+            if self.nb_drones <= 0:
+                raise ValueError("Número de drones inváildo")
 
+            
         elif any(line.startswith(p) for p in ["hub:", "start_hub:", "end_hub:"]):
             prefix, content = line.split(":", 1)
             content = content.strip()
@@ -137,4 +144,18 @@ if __name__ == "__main__":
     Bug: en el caso "hub:" llamas Hub(name, x, y, color) — pero el 4º parámetro posicional de Hub.__init__ es zo_type, no color. Estás metiendo el color en el slot de tipo de zona, y el color real nunca se asigna (siempre queda "white" por defecto).
     max_drones=<n> (capacidad de zona) no se parsea ni se guarda en Hub.
     max_link_capacity=<n> (capacidad de conexión) no se parsea; Connection.capacity queda siempre en 1.
+
+    Validaciones del parser que exige el enunciado y no están
+
+    No se valida que nb_drones sea un entero positivo (ni que exista/sea la primera línea); si el valor no es numérico, int() lanza una excepción no controlada → crash.
+    No se verifica que haya exactamente un start_hub y un end_hub (el subject lo exige explícitamente).
+    No se valida que los nombres de zona no contengan espacios ni guiones ("-" está reservado para conexiones).
+    No se valida el tipo de zona (zone= debe ser uno de normal|blocked|restricted|priority; cualquier otro valor debe lanzar error de parseo). Como ni se parsea, tampoco se valida.
+    No se valida que los valores de capacidad (max_drones, max_link_capacity) sean enteros positivos.
+    Duplicados de conexión no se detectan de verdad: Drone_Map.add_connection hace if connection not in self.connections, pero Connection no define __eq__, así que la comparación siempre es por identidad de objeto → nunca detecta que a-b y b-a (o a-b repetido) sean duplicados, aunque el subject lo exige explícitamente.
+
+    Manejo de errores general
+
+    Sólo se capturan FileNotFoundError y ValueError; cualquier otra excepción (p. ej. int() fallando en nb_drones, o un IndexError si la línea no tiene :) no se controla y el programa crashea sin mensaje claro — el enunciado pide manejo elegante de excepciones (III.1) siempre.
+
     '''
