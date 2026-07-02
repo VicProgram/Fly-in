@@ -28,7 +28,7 @@ class Parser:
             sys.exit(1)
 
     def parse_hub_content(self, content: str) -> tuple[str, int, int, str]:
-        match_color = re.search(r"\[color=(\w+)\]", content)
+        match_color = re.search(r"color=(\w+)", content)
         color = match_color.group(1) if match_color else "white"
 
         main_part = re.sub(r"\[.*?\]", "", content).strip()
@@ -52,10 +52,8 @@ class Parser:
             content = content.strip()
 
             try:
-                # 1. Extraemos los datos reales
                 name, x, y, color = self.parse_hub_content(content)
                 
-                # 2. Usamos 'name', 'x', 'y' y 'color' en lugar de textos fijos
                 match prefix:
                     case "start_hub":
                         nuevo_hub = Hub(name, x, y, "start")
@@ -84,6 +82,11 @@ class Parser:
             _, content = line.split(":", 1)
 
             content_clean = re.sub(r"\[.*?\]", "", content).strip()
+
+            if "-" not in content_clean:
+                print(f"Error de sintaxis en línea {line_num}: Conexión malformada.", file=sys.stderr)
+                sys.exit(1)
+
             zone_1, zone_2 = content_clean.split("-", 1)
             zone_1 = zone_1.strip()
             zone_2 = zone_2.strip()
