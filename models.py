@@ -16,6 +16,7 @@ class Hub:
         self.color: str = color
         self.max_drones: int = max_drones
 
+        print ("HELOOOOUUUUU", self.max_drones)
 
 class Connection:
     def __init__(

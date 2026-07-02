@@ -35,9 +35,10 @@ class Parser:
 
         main_part = re.sub(r"\[.*?\]", "", content).strip()
         parts = main_part.split()
-
+        print(parts)
         main_part = re.sub(r"\[.*?\]", "", content).strip()
         parts = main_part.split()
+        print(parts)
 
 
         if len(parts) != 3:
@@ -52,7 +53,9 @@ class Parser:
         if line.startswith("nb_drones:"):
             self.nb_drones = int(line.split(":")[1].strip())
             
-            if self.nb_drones <= 0:
+            # BUSCAR CUAL ES EL NUMERO DE DRONES DONDE PETA
+
+            if self.nb_drones <= 0 or self.nb_drones >= 500:
                 raise ValueError("Número de drones inváildo")
 
             
@@ -125,9 +128,6 @@ class Parser:
             sys.exit(1)
 
 
-
-
-
     def print_avances(self) -> None:
 
         print(f"Mapa cargado exitosamente. Drones totales: {self.nb_drones}")
@@ -190,8 +190,18 @@ if __name__ == "__main__":
     Puede no estar la info de colores por ejemplo
 
     longitud de metadatos de hubs tiene que ser 3 
-    longitud de metadatos de conexiones tiene que ser 1 
+    longitud de metadatos de conexiones tiene que ser 1
 
+
+    SI ESO COMPROBAR EL NOMBRE DE LOS COLORES, QUE ESTÉ BIEN:
+    Greeeen NO DEBERIA FUNCIONAR
+    LANZAR ERROR
+
+
+    Comprobar si estamos cogiendo bien el numero de drones
+    y que todo siempre en minuscula
+
+     
 
 
     '''
