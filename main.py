@@ -27,6 +27,7 @@ class Parser:
                 )
             sys.exit(1)
 
+
     def parse_hub_content(self, content: str) -> tuple[str, int, int, str]:
 
         match_color = re.search(r"color=(\w+)", content)
@@ -37,7 +38,8 @@ class Parser:
 
         main_part = re.sub(r"\[.*?\]", "", content).strip()
         parts = main_part.split()
-        print(parts)
+
+
         if len(parts) != 3:
             raise ValueError(f"Formato de hub inválido: '{content}'")
 
@@ -63,13 +65,13 @@ class Parser:
                 
                 match prefix:
                     case "start_hub":
-                        nuevo_hub = Hub(name, x, y, "start")
+                        nuevo_hub = Hub(name, x, y, color, "start")
 
                     case "end_hub":
-                        nuevo_hub = Hub(name, x, y, "end")
+                        nuevo_hub = Hub(name, x, y, color, "end")
 
                     case "hub":
-                        nuevo_hub = Hub(name, x, y, color)
+                        nuevo_hub = Hub(name, x, y, color, "normal")
                         self.hub_counter += 1
 
                     case _:
@@ -98,6 +100,7 @@ class Parser:
             zone_1 = zone_1.strip()
             zone_2 = zone_2.strip()
 
+
             first_hub = self.map.hubs.get(zone_1)
             second_hub = self.map.hubs.get(zone_2)
 
@@ -122,6 +125,18 @@ class Parser:
             sys.exit(1)
 
 
+
+
+
+    def print_avances(self) -> None:
+
+        print(f"Mapa cargado exitosamente. Drones totales: {self.nb_drones}")
+        print(f"Mapa cargado exitosamente. Hubs totales: {self.hub_counter}")
+        print(f"Mapa cargado exitosamente. Conexiones totales: {self.connection_counter}")
+
+
+
+
 def main() -> None:
     if len(sys.argv) < 2:
         print("Uso: python3 -m tu_modulo mapa.txt", file=sys.stderr)
@@ -130,7 +145,11 @@ def main() -> None:
     drone_map = Drone_Map()
     parser = Parser(drone_map)
     parser.parse_file(sys.argv[1])
-    print(f"Mapa cargado exitosamente. Drones totales: {parser.nb_drones}")
+
+    # PRUEBAS
+    parser.print_avances()
+
+    
 
 
 if __name__ == "__main__":
@@ -157,5 +176,22 @@ if __name__ == "__main__":
     Manejo de errores general
 
     Sólo se capturan FileNotFoundError y ValueError; cualquier otra excepción (p. ej. int() fallando en nb_drones, o un IndexError si la línea no tiene :) no se controla y el programa crashea sin mensaje claro — el enunciado pide manejo elegante de excepciones (III.1) siempre.
+
+    No puede haber dos coordenadas duplicadas
+    No puede haber mas de un start_hub
+    No puede haber mas de un end_hub
+    No puede haber nombres repetidos
+
+    No puede haber conexiones repetidas, que no significa
+    que sea la misma en direccion opuesta
+    MIRAR BIEN EL __eq__ y el __hash__ a lo mejor no se necesita
+    LAS CONEXIONES SON BIDIRECCIONALES!!
+
+    Puede no estar la info de colores por ejemplo
+
+    longitud de metadatos de hubs tiene que ser 3 
+    longitud de metadatos de conexiones tiene que ser 1 
+
+
 
     '''
