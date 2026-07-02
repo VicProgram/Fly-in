@@ -128,3 +128,13 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+''' 
+   TODO
+
+    zone=<tipo> nunca se extrae. Sólo se saca color con regex; el resto del contenido se descarta con re.sub(r"\[.*?\]", "", content). Como consecuencia, normal/blocked/restricted/priority no se guardan en ningún lado, y eso es central para el coste de movimiento y las zonas bloqueadas.
+    Bug: en el caso "hub:" llamas Hub(name, x, y, color) — pero el 4º parámetro posicional de Hub.__init__ es zo_type, no color. Estás metiendo el color en el slot de tipo de zona, y el color real nunca se asigna (siempre queda "white" por defecto).
+    max_drones=<n> (capacidad de zona) no se parsea ni se guarda en Hub.
+    max_link_capacity=<n> (capacidad de conexión) no se parsea; Connection.capacity queda siempre en 1.
+    '''
