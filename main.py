@@ -127,7 +127,7 @@ class Parser:
                 )
             sys.exit(1)
 
-
+    # PRUEBAS
     def print_avances(self) -> None:
 
         print(f"Mapa cargado exitosamente. Drones totales: {self.nb_drones}")
@@ -159,8 +159,10 @@ if __name__ == "__main__":
 ''' 
    TODO
 
-    zone=<tipo> nunca se extrae. Sólo se saca color con regex; el resto del contenido se descarta con re.sub(r"\[.*?\]", "", content). Como consecuencia, normal/blocked/restricted/priority no se guardan en ningún lado, y eso es central para el coste de movimiento y las zonas bloqueadas.
-    Bug: en el caso "hub:" llamas Hub(name, x, y, color) — pero el 4º parámetro posicional de Hub.__init__ es zo_type, no color. Estás metiendo el color en el slot de tipo de zona, y el color real nunca se asigna (siempre queda "white" por defecto).
+    zone=<tipo> nunca se extrae. Sólo se saca color con regex; el resto del contenido se descarta con re.sub(r"\[.*?\]", "", content).
+    Como consecuencia, normal/blocked/restricted/priority no se guardan en ningún lado, y eso es central para el coste de movimiento y las zonas bloqueadas.
+    Bug: en el caso "hub:" llamas Hub(name, x, y, color) — pero el 4º parámetro posicional de Hub.__init__ es zo_type, no color.
+    Estás metiendo el color en el slot de tipo de zona, y el color real nunca se asigna (siempre queda "white" por defecto).
     max_drones=<n> (capacidad de zona) no se parsea ni se guarda en Hub.
     max_link_capacity=<n> (capacidad de conexión) no se parsea; Connection.capacity queda siempre en 1.
 
@@ -171,11 +173,13 @@ if __name__ == "__main__":
     No se valida que los nombres de zona no contengan espacios ni guiones ("-" está reservado para conexiones).
     No se valida el tipo de zona (zone= debe ser uno de normal|blocked|restricted|priority; cualquier otro valor debe lanzar error de parseo). Como ni se parsea, tampoco se valida.
     No se valida que los valores de capacidad (max_drones, max_link_capacity) sean enteros positivos.
-    Duplicados de conexión no se detectan de verdad: Drone_Map.add_connection hace if connection not in self.connections, pero Connection no define __eq__, así que la comparación siempre es por identidad de objeto → nunca detecta que a-b y b-a (o a-b repetido) sean duplicados, aunque el subject lo exige explícitamente.
+    Duplicados de conexión no se detectan de verdad: Drone_Map.add_connection hace if connection not in self.connections,
+    pero Connection no define __eq__, así que la comparación siempre es por identidad de objeto → nunca detecta que a-b y b-a (o a-b repetido) sean duplicados, aunque el subject lo exige explícitamente.
 
     Manejo de errores general
 
-    Sólo se capturan FileNotFoundError y ValueError; cualquier otra excepción (p. ej. int() fallando en nb_drones, o un IndexError si la línea no tiene :) no se controla y el programa crashea sin mensaje claro — el enunciado pide manejo elegante de excepciones (III.1) siempre.
+    Sólo se capturan FileNotFoundError y ValueError; cualquier otra excepción (p. ej. int() fallando en nb_drones, o un IndexError si la línea no tiene :)
+    no se controla y el programa crashea sin mensaje claro — el enunciado pide manejo elegante de excepciones (III.1) siempre.
 
     No puede haber dos coordenadas duplicadas
     No puede haber mas de un start_hub
@@ -192,7 +196,6 @@ if __name__ == "__main__":
     longitud de metadatos de hubs tiene que ser 3 
     longitud de metadatos de conexiones tiene que ser 1
 
-
     SI ESO COMPROBAR EL NOMBRE DE LOS COLORES, QUE ESTÉ BIEN:
     Greeeen NO DEBERIA FUNCIONAR
     LANZAR ERROR
@@ -200,8 +203,5 @@ if __name__ == "__main__":
 
     Comprobar si estamos cogiendo bien el numero de drones
     y que todo siempre en minuscula
-
-     
-
 
     '''
