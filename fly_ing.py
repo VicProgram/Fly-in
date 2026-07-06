@@ -40,7 +40,7 @@ class Parser:
 
         match_max_drone_nb = re.search(r"max_drones=(\d+)", content)
         max_drones = int(match_max_drone_nb.group(1)) if match_max_drone_nb else 1
-        
+
 
         main_part = re.sub(r"\[.*?\]", "", content).strip()
         parts = main_part.split()
@@ -190,7 +190,7 @@ if __name__ == "__main__":
     Sólo se capturan FileNotFoundError y ValueError; cualquier otra excepción (p. ej. int() fallando en nb_drones, o un IndexError si la línea no tiene :)
     no se controla y el programa crashea sin mensaje claro — el enunciado pide manejo elegante de excepciones (III.1) siempre.
 
-    No puede haber dos coordenadas duplicadas
+    -OK-No puede haber dos coordenadas duplicadas
     No puede haber mas de un start_hub
     No puede haber mas de un end_hub
     No puede haber nombres repetidos

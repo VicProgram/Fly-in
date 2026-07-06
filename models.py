@@ -103,21 +103,23 @@ class Drone_Map:
         if hub.name in self.hubs:
             raise ValueError(f"Error: El Hub con nombre '{hub.name}' ya existe.")
 
+        if (hub.x, hub.y) in self.used_coords:
+            raise ValueError(f"Error: ya existe un hub en la coordenada ({hub.x}, {hub.y}).")
+
+        if hub.hub_type == "start" and self.start_hub is not None:
+            raise ValueError("Error: ya existe un start_hub.")
+
+        if hub.hub_type == "end" and self.end_hub is not None:
+            raise ValueError("Error: ya existe un end_hub.")
+
+        self.hubs[hub.name] = hub
+        self.used_coords.add((hub.x, hub.y))
+
         if hub.hub_type == "start":
-            if self.start_hub is not None:
-                raise ValueError("Error: ya existe un start_hub.")
             self.start_hub = hub
 
         elif hub.hub_type == "end":
-            if self.end_hub is not None:
-                raise ValueError("Error: ya existe un end_hub.")
             self.end_hub = hub
-        
-        if (hub.x, hub.y) in self.used_coords:
-            raise ValueError(f"Error: ya existe un hub en la coordenada ({hub.x}, {hub.y}).")
-        self.used_coords.add((hub.x, hub.y))
-
-        self.hubs[hub.name] = hub
 
 
     def add_connection(self, connection:Connection) -> None:
