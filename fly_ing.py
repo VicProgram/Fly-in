@@ -7,7 +7,7 @@ class Parser:
     def __init__(self, drone_map: Drone_Map) -> None:
         self.map: Drone_Map = drone_map
         self.nb_drones: int = 0
-        self.hub_counter = 1
+        self.hub_counter = 0
         self.connection_counter: int = 0
 
     def parse_file(self, map_path: str) -> None:
@@ -79,10 +79,10 @@ class Parser:
                 match prefix:
                     case "start_hub":
                         nuevo_hub = Hub(name, x, y, zo_type, color, "start", max_drones)
-
+                        self.hub_counter += 1
                     case "end_hub":
                         nuevo_hub = Hub(name, x, y, zo_type, color, "end", max_drones)
-
+                        self.hub_counter += 1
                     case "hub":
                         nuevo_hub = Hub(name, x, y, zo_type, color, "normal", max_drones)
                         self.hub_counter += 1
