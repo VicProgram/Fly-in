@@ -43,12 +43,6 @@ class Valid_List:
 
 
     @classmethod
-    def check_color(cls, color: str) -> None:
-        if color not in cls.valid_colors:
-            raise ValueError(f"Color no válido: '{color}'")
-
-
-    @classmethod
     def check_zone(cls, zone: str) -> None:
         if zone not in cls.valid_zones:
             raise ValueError(f"Zona no válida: '{zone}'")

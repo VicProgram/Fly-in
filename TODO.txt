@@ -99,4 +99,23 @@ PENDIENTE — Metadatos (revisar si sigue aplicando)
       otra cosa (p.ej. cuántos parámetros opcionales [...] admite
       cada línea).
 
+
+
+Lo que confirma que sigue pendiente y ahora sabemos que es obligatorio:
+
+nb_drones: debe ser literalmente la primera línea del archivo.
+El subject lo dice explícito: "The first line must define the number of drones..."
+No es "en algún momento del archivo", es la primera línea (ignorando comentarios/vacías, previsiblemente).
+Necesitas un chequeo tipo: la primera línea no-comentario debe empezar por nb_drones:, si no, error de parseo.
+Conexiones deben enlazar sólo hubs ya definidos previamente (orden importa).
+Tu código actual con self.map.hubs.get(zone_1) ya falla si no existe — pero confirma que no
+permites definir una conexión ANTES de que ambos hubs existan
+(si el archivo tiene el connection: antes que los hub: correspondientes,
+hoy en día seguramente ya falla porque el hub no está en el dict todavía, así que esto probablemente ya está cubierto).
+Manejo de excepción genérica para cualquier error de parseo no anticipado,
+con mensaje claro de línea y causa — esto sigue siendo tu punto pendiente de siempre.
+
+Mi propuesta de próximo paso concreto: empecemos por quitar/simplificar check_color
+(es rápido y corrige un bug de sobre-validación que contradice el subject),
+y luego forzamos que nb_drones: sea la primera línea. ¿Te preparo el código de las dos cosas juntas?
 '''

@@ -39,8 +39,9 @@ class Parser:
     def parse_hub_content(self, content: str) -> tuple[str, int, int, str, str, int]:
 
         match_color = re.search(r"color=(\w+)", content)
-        color = match_color.group(1).lower().strip() if match_color else "white"
-        Valid_List.check_color(color)
+        color = match_color.group(1).lower().strip() if match_color else "none"
+        #color = match_color.group(1).lower().strip() if match_color else "white"
+        #Valid_List.check_color(color)
 
         match_zone = re.search(r"zone=(\w+)", content)
         zo_type = match_zone.group(1).lower().strip() if match_zone else "normal"
