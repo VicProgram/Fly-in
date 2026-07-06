@@ -40,6 +40,8 @@ class Parser:
 
         match_max_drone_nb = re.search(r"max_drones=(\d+)", content)
         max_drones = int(match_max_drone_nb.group(1)) if match_max_drone_nb else 1
+        if max_drones <= 0:
+            raise ValueError(f"max_drones debe ser positivo: '{max_drones}'")
 
 
         main_part = re.sub(r"\[.*?\]", "", content).strip()
@@ -77,6 +79,7 @@ class Parser:
                 name, x, y, zo_type, color, max_drones = self.parse_hub_content(content)
                 
                 match prefix:
+
                     case "start_hub":
                         nuevo_hub = Hub(name, x, y, zo_type, color, "start", max_drones)
                         self.hub_counter += 1
@@ -99,46 +102,52 @@ class Parser:
             except ValueError as e:
                 print(f"Error en línea {line_num}: {e}", file=sys.stderr)
                 sys.exit(1)
-
+                
         elif line.startswith("connection:"):
-            _, content = line.split(":", 1)
+            try:
+                _, content = line.split(":", 1)
 
-            match_capacity = re.search(r"max_link_capacity=(\d+)", content)
-            capacity = int(match_capacity.group(1)) if match_capacity else 1
+                match_capacity = re.search(r"max_link_capacity=(\d+)", content)
+                capacity = int(match_capacity.group(1)) if match_capacity else 1
 
-            content_clean = re.sub(r"\[.*?\]", "", content).strip()
+                if capacity <= 0:
+                    raise ValueError(f"max_link_capacity debe ser positivo: '{capacity}'")
 
-            if "-" not in content_clean:
-                print(f"Error de sintaxis en línea {line_num}: Conexión malformada.", file=sys.stderr)
-                sys.exit(1)
+                content_clean = re.sub(r"\[.*?\]", "", content).strip()
 
-            zone_1, zone_2 = content_clean.split("-", 1)
-            zone_1 = zone_1.strip()
-            zone_2 = zone_2.strip()
+                if "-" not in content_clean:
+                    print(f"Error de sintaxis en línea {line_num}: Conexión malformada.", file=sys.stderr)
+                    sys.exit(1)
 
+                zone_1, zone_2 = content_clean.split("-", 1)
+                zone_1 = zone_1.strip()
+                zone_2 = zone_2.strip()
 
-            first_hub = self.map.hubs.get(zone_1)
-            second_hub = self.map.hubs.get(zone_2)
+                first_hub = self.map.hubs.get(zone_1)
+                second_hub = self.map.hubs.get(zone_2)
 
-            if not first_hub or not second_hub:
-                print(
-                    f"Error en línea {line_num}: zona no encontrada "
-                    f"en la conexión ('{zone_1}' o '{zone_2}').", file=sys.stderr
+                if not first_hub or not second_hub:
+                    print(
+                        f"Error en línea {line_num}: zona no encontrada "
+                        f"en la conexión ('{zone_1}' o '{zone_2}').", file=sys.stderr
                     )
+                    sys.exit(1)
+
+                if first_hub is second_hub:
+                    raise ValueError(
+                        f"Una conexión no puede unir un hub consigo mismo: '{zone_1}'"
+                    )
+
+                self.connection_counter += 1
+                new_connection = Connection(
+                    f"Conn{self.connection_counter}", first_hub, second_hub, capacity
+                )
+                self.map.add_connection(new_connection)
+
+            except ValueError as e:
+                print(f"Error en línea {line_num}: {e}", file=sys.stderr)
                 sys.exit(1)
-
-            self.connection_counter += 1
-            new_connection = Connection(
-                f"Conn{self.connection_counter}", first_hub, second_hub, capacity
-                )
-            self.map.add_connection(new_connection)
-
-        else:
-            print(
-                f"Error de sintaxis en línea {line_num}: "
-                "Comando desconocido.", file=sys.stderr
-                )
-            sys.exit(1)
+    
 
     # PRUEBAS
     def print_avances(self) -> None:
@@ -165,52 +174,27 @@ if __name__ == "__main__":
     main()
 
 
+ 
 ''' 
-   TODO
+   TODO (Pendientes de implementar)
 
-    zone=<tipo> nunca se extrae. Sólo se saca color con regex; el resto del contenido se descarta con re.sub(r"\[.*?\]", "", content).
-    Como consecuencia, normal/blocked/restricted/priority no se guardan en ningún lado, y eso es central para el coste de movimiento y las zonas bloqueadas.
-    Bug: en el caso "hub:" llamas Hub(name, x, y, color) — pero el 4º parámetro posicional de Hub.__init__ es zo_type, no color.
-    Estás metiendo el color en el slot de tipo de zona, y el color real nunca se asigna (siempre queda "white" por defecto).
-    max_drones=<n> (capacidad de zona) no se parsea ni se guarda en Hub.
-    max_link_capacity=<n> (capacidad de conexión) no se parsea; Connection.capacity queda siempre en 1.
+    Validaciones requeridas al terminar el archivo (Post-parsing)
+    ----------------------------------------------------------
+    - Verificar la existencia obligatoria de la ruta: El enunciado exige que el mapa tenga 
+      exactamente un 'start_hub' y un 'end_hub'. Al finalizar la lectura de todas las líneas, 
+      se debe comprobar que 'self.map.start_hub' y 'self.map.end_hub' no sean None.
 
-    Validaciones del parser que exige el enunciado y no están
+    Restricciones de caracteres y formato en nombres
+    ------------------------------------------------
+    - Validar caracteres prohibidos en nombres de Hubs: Los nombres de zona no pueden contener 
+      espacios ni guiones ("-"), ya que el guión está explícitamente reservado como separador 
+      para las líneas de "connection:". Añadir validación 'if "-" in name:'.
 
-    No se valida que nb_drones sea un entero positivo (ni que exista/sea la primera línea); si el valor no es numérico, int() lanza una excepción no controlada → crash.
-    No se verifica que haya exactamente un start_hub y un end_hub (el subject lo exige explícitamente).
-    No se valida que los nombres de zona no contengan espacios ni guiones ("-" está reservado para conexiones).
-    No se valida el tipo de zona (zone= debe ser uno de normal|blocked|restricted|priority; cualquier otro valor debe lanzar error de parseo). Como ni se parsea, tampoco se valida.
-    No se valida que los valores de capacidad (max_drones, max_link_capacity) sean enteros positivos.
-    Duplicados de conexión no se detectan de verdad: Drone_Map.add_connection hace if connection not in self.connections,
-    pero Connection no define __eq__, así que la comparación siempre es por identidad de objeto → nunca detecta que a-b y b-a (o a-b repetido) sean duplicados, aunque el subject lo exige explícitamente.
-
-    Manejo de errores general
-
-    Sólo se capturan FileNotFoundError y ValueError; cualquier otra excepción (p. ej. int() fallando en nb_drones, o un IndexError si la línea no tiene :)
-    no se controla y el programa crashea sin mensaje claro — el enunciado pide manejo elegante de excepciones (III.1) siempre.
-
-    -OK-No puede haber dos coordenadas duplicadas
-    No puede haber mas de un start_hub
-    No puede haber mas de un end_hub
-    No puede haber nombres repetidos
-
-    No puede haber conexiones repetidas, que no significa
-    que sea la misma en direccion opuesta
-    MIRAR BIEN EL __eq__ y el __hash__ a lo mejor no se necesita
-    LAS CONEXIONES SON BIDIRECCIONALES!!
-
-    Puede no estar la info de colores por ejemplo
-
-    longitud de metadatos de hubs tiene que ser 3 
-    longitud de metadatos de conexiones tiene que ser 1
-
-    SI ESO COMPROBAR EL NOMBRE DE LOS COLORES, QUE ESTÉ BIEN:
-    Greeeen NO DEBERIA FUNCIONAR
-    LANZAR ERROR
-
-
-    Comprobar si estamos cogiendo bien el numero de drones
-    y que todo siempre en minuscula
+    Robustez y control de formato estricto
+    --------------------------------------
+    - Validar que 'nb_drones:' sea siempre la primera instrucción válida/leída del archivo.
+    - Control de excepciones genéricas: Asegurar que ante cualquier línea malformada inesperada 
+      el programa no haga un crash directo (traceback), sino que se capture elegantemente 
+      mostrando el error por 'sys.stderr' y finalizando con 'sys.exit(1)'.
 
     '''
