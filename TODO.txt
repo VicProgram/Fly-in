@@ -1,73 +1,102 @@
+'''
+TODO — Estado del proyecto Fly-in (parser)
 
-''' 
-   TODO
+===========================================================
+YA RESUELTO
+===========================================================
 
-    zone=<tipo> nunca se extrae. Sólo se saca color con regex; el resto del contenido se descarta con re.sub(r"\[.*?\]", "", content).
-    Como consecuencia, normal/blocked/restricted/priority no se guardan en ningún lado, y eso es central para el coste de movimiento y las zonas bloqueadas.
-    Bug: en el caso "hub:" llamas Hub(name, x, y, color) — pero el 4º parámetro posicional de Hub.__init__ es zo_type, no color.
-    Estás metiendo el color en el slot de tipo de zona, y el color real nunca se asigna (siempre queda "white" por defecto).
-    max_drones=<n> (capacidad de zona) no se parsea ni se guarda en Hub.
-    max_link_capacity=<n> (capacidad de conexión) no se parsea; Connection.capacity queda siempre en 1.
-
-    Validaciones del parser que exige el enunciado y no están
-
-    No se valida que nb_drones sea un entero positivo (ni que exista/sea la primera línea); si el valor no es numérico, int() lanza una excepción no controlada → crash.
-    No se verifica que haya exactamente un start_hub y un end_hub (el subject lo exige explícitamente).
-    No se valida que los nombres de zona no contengan espacios ni guiones ("-" está reservado para conexiones).
-    No se valida el tipo de zona (zone= debe ser uno de normal|blocked|restricted|priority; cualquier otro valor debe lanzar error de parseo). Como ni se parsea, tampoco se valida.
-    No se valida que los valores de capacidad (max_drones, max_link_capacity) sean enteros positivos.
-    Duplicados de conexión no se detectan de verdad: Drone_Map.add_connection hace if connection not in self.connections,
-    pero Connection no define __eq__, así que la comparación siempre es por identidad de objeto → nunca detecta que a-b y b-a (o a-b repetido) sean duplicados, aunque el subject lo exige explícitamente.
-
-    Manejo de errores general
-
-    Sólo se capturan FileNotFoundError y ValueError; cualquier otra excepción (p. ej. int() fallando en nb_drones, o un IndexError si la línea no tiene :)
-    no se controla y el programa crashea sin mensaje claro — el enunciado pide manejo elegante de excepciones (III.1) siempre.
-
-    -OK-No puede haber dos coordenadas duplicadas
-    No puede haber mas de un start_hub
-    No puede haber mas de un end_hub
-    No puede haber nombres repetidos
-
-    No puede haber conexiones repetidas, que no significa
-    que sea la misma en direccion opuesta
-    MIRAR BIEN EL __eq__ y el __hash__ a lo mejor no se necesita
-    LAS CONEXIONES SON BIDIRECCIONALES!!
-
-    Puede no estar la info de colores por ejemplo
-
-    longitud de metadatos de hubs tiene que ser 3 
-    longitud de metadatos de conexiones tiene que ser 1
-
-    SI ESO COMPROBAR EL NOMBRE DE LOS COLORES, QUE ESTÉ BIEN:
-    Greeeen NO DEBERIA FUNCIONAR
-    LANZAR ERROR
+- [OK] zone=, color=, max_drones=, max_link_capacity= se parsean correctamente.
+- [OK] Bug de Hub(name, x, y, color) en slot equivocado — Hub ahora recibe
+       (name, x, y, zo_type, color, hub_type, max_drones) en el orden correcto.
+- [OK] Validación de zo_type contra CosasValidas.valid_zones.
+- [OK] Validación de color contra CosasValidas.valid_colors (Greeeen ya falla).
+- [OK] No puede haber dos coordenadas duplicadas (Drone_Map.used_coords).
+- [OK] No puede haber nombres de hub repetidos (chequeo en add_hub).
+- [OK] No puede haber más de un start_hub / más de un end_hub (add_hub).
+- [OK] Connection.__eq__/__hash__ con frozenset({zone1, zone2}) — conexiones
+       bidireccionales (a-b y b-a se consideran la misma).
+- [OK] Conteo de hubs corregido: usar len(self.map.hubs) en vez de un
+       contador manual desincronizado.
+- [OK] Nombres de hub normalizados a minúsculas, tanto al definir el hub
+       (parse_hub_content) como al leerlos en connection: (zone_1/zone_2).
+- [OK] nb_drones: valida que sea entero positivo y < 500, con manejo de
+       ValueError e IndexError (sin crash si falta ':').
+- [OK] Bloque hub:/start_hub:/end_hub: con try/except ValueError que
+       captura errores de parse_hub_content y de add_hub.
 
 
-    Comprobar si estamos  bien el numero de drones
-    y que todo siempre en minuscula
+===========================================================
+PENDIENTE — Validaciones dentro de connection:
+===========================================================
+
+- [ ] El bloque "elif line.startswith('connection:')" TODAVÍA NO tiene
+      try/except. Cualquier fallo ahí (línea sin ':', capacity mal
+      formada, etc.) hace crash sin control. Hay que envolver todo el
+      bloque en try/except ValueError + except IndexError, igual que
+      los otros dos bloques.
+
+- [ ] max_link_capacity debe ser entero positivo (> 0). Ahora mismo
+      \d+ sólo evita negativos, pero deja pasar 0.
+
+- [ ] max_drones (capacidad de zona, en hubs) debe ser entero positivo
+      (> 0). Mismo problema: 0 pasa sin queja.
+
+- [ ] Una conexión no puede unir un hub consigo mismo
+      (first_hub is second_hub → error).
 
 
-    TODO (Pendientes de implementar)
+===========================================================
+PENDIENTE — Restricciones de nombres
+===========================================================
 
-    Validaciones requeridas al terminar el archivo (Post-parsing)
-    ----------------------------------------------------------
-    - Verificar la existencia obligatoria de la ruta: El enunciado exige que el mapa tenga 
-      exactamente un 'start_hub' y un 'end_hub'. Al finalizar la lectura de todas las líneas, 
-      se debe comprobar que 'self.map.start_hub' y 'self.map.end_hub' no sean None.
+- [ ] Los nombres de hub no pueden contener "-" (reservado como
+      separador en connection:). Validar en parse_hub_content:
+      if "-" in name: raise ValueError(...)
 
-    Restricciones de caracteres y formato en nombres
-    ------------------------------------------------
-    - Validar caracteres prohibidos en nombres de Hubs: Los nombres de zona no pueden contener 
-      espacios ni guiones ("-"), ya que el guión está explícitamente reservado como separador 
-      para las líneas de "connection:". Añadir validación 'if "-" in name:'.
-
-    Robustez y control de formato estricto
-    --------------------------------------
-    - Validar que 'nb_drones:' sea siempre la primera instrucción válida/leída del archivo.
-    - Control de excepciones genéricas: Asegurar que ante cualquier línea malformada inesperada 
-      el programa no haga un crash directo (traceback), sino que se capture elegantemente 
-      mostrando el error por 'sys.stderr' y finalizando con 'sys.exit(1)'.
+- [ ] Los nombres de hub no pueden contener espacios internos.
+      (Verificar si esto ya queda cubierto por el split() de
+      parse_hub_content, o si hace falta un chequeo explícito.)
 
 
-    '''
+===========================================================
+PENDIENTE — Validaciones post-parseo (al terminar de leer el archivo)
+===========================================================
+
+- [ ] Tras parsear todo el archivo, comprobar que self.map.start_hub
+      y self.map.end_hub NO sean None. El enunciado exige exactamente
+      un start_hub y un end_hub — ahora mismo sólo se valida que no
+      haya más de uno, pero no que exista al menos uno.
+      (Chequeo a añadir en main() o al final de parse_file(), después
+      del bucle for.)
+
+- [ ] Validar que nb_drones: sea la primera instrucción del archivo
+      (o al menos que se haya leído antes de usarse en algo, si el
+      resto de la lógica del proyecto depende de nb_drones).
+
+
+===========================================================
+PENDIENTE — Manejo de errores general
+===========================================================
+
+- [ ] Revisar que TODAS las ramas de parse_line tengan manejo de
+      excepciones (ver punto de connection: arriba — es la única que
+      falta a día de hoy).
+
+- [ ] Considerar un except Exception genérico de última instancia en
+      parse_file (alrededor de self.parse_line(...)), como red de
+      seguridad para cualquier caso no previsto, mostrando el error
+      por stderr y sys.exit(1) en vez de traceback crudo.
+
+
+===========================================================
+PENDIENTE — Metadatos (revisar si sigue aplicando)
+===========================================================
+
+- [ ] "Longitud de metadatos de hubs tiene que ser 3" y "longitud de
+      metadatos de conexiones tiene que ser 1" — verificar qué exige
+      exactamente el subject aquí; no está claro si ya está cubierto
+      por el len(parts) != 3 de parse_hub_content o si se refiere a
+      otra cosa (p.ej. cuántos parámetros opcionales [...] admite
+      cada línea).
+
+'''

@@ -4,6 +4,12 @@ from typing import Dict, List, Optional
 
 class Valid_List:
 
+    valid_hubs = {
+        "hub:",
+        "start_hub:",
+        "end_hub:"
+    }
+
     valid_zones = {
         "normal",
         "blocked",

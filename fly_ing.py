@@ -27,6 +27,14 @@ class Parser:
                 )
             sys.exit(1)
 
+        if self.map.start_hub is None:
+            print("Error: el mapa no tiene ningún start_hub.", file=sys.stderr)
+            sys.exit(1)
+
+        if self.map.end_hub is None:
+            print("Error: el mapa no tiene ningún end_hub.", file=sys.stderr)
+            sys.exit(1)
+
 
     def parse_hub_content(self, content: str) -> tuple[str, int, int, str, str, int]:
 
@@ -52,6 +60,11 @@ class Parser:
             raise ValueError(f"Formato de hub inválido: '{content}'")
 
         name, x_str, y_str = parts
+        name = name.lower()
+
+        if "-" in name:
+            raise ValueError(f"Nombre de hub inválido (contiene '-'): '{name}'")
+
         return name, int(x_str), int(y_str), zo_type, color, int(max_drones)
 
 
@@ -71,7 +84,7 @@ class Parser:
                 print(f"Error en línea {line_num}: falta ':' en 'nb_drones'.", file=sys.stderr)
                 sys.exit(1)
 
-        elif any(line.startswith(p) for p in ["hub:", "start_hub:", "end_hub:"]):
+        elif any(line.startswith(p) for p in Valid_List.valid_hubs):
             prefix, content = line.split(":", 1)
             content = content.strip()
 
@@ -116,36 +129,35 @@ class Parser:
                 content_clean = re.sub(r"\[.*?\]", "", content).strip()
 
                 if "-" not in content_clean:
-                    print(f"Error de sintaxis en línea {line_num}: Conexión malformada.", file=sys.stderr)
-                    sys.exit(1)
+                    raise ValueError("Conexión malformada.")
 
                 zone_1, zone_2 = content_clean.split("-", 1)
-                zone_1 = zone_1.strip()
-                zone_2 = zone_2.strip()
+                zone_1 = zone_1.strip().lower()
+                zone_2 = zone_2.strip().lower()
 
                 first_hub = self.map.hubs.get(zone_1)
                 second_hub = self.map.hubs.get(zone_2)
 
                 if not first_hub or not second_hub:
-                    print(
-                        f"Error en línea {line_num}: zona no encontrada "
-                        f"en la conexión ('{zone_1}' o '{zone_2}').", file=sys.stderr
+                    raise ValueError(
+                        f"zona no encontrada en la conexión ('{zone_1}' o '{zone_2}')."
                     )
-                    sys.exit(1)
 
                 if first_hub is second_hub:
-                    raise ValueError(
-                        f"Una conexión no puede unir un hub consigo mismo: '{zone_1}'"
-                    )
+                    raise ValueError(f"Una conexión no puede unir un hub consigo mismo: '{zone_1}'")
 
                 self.connection_counter += 1
                 new_connection = Connection(
                     f"Conn{self.connection_counter}", first_hub, second_hub, capacity
-                )
+                    )
                 self.map.add_connection(new_connection)
 
             except ValueError as e:
                 print(f"Error en línea {line_num}: {e}", file=sys.stderr)
+                sys.exit(1)
+
+            except IndexError:
+                print(f"Error en línea {line_num}: conexión malformada, falta ':'.", file=sys.stderr)
                 sys.exit(1)
     
 
