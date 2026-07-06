@@ -2,7 +2,7 @@ import sys
 from typing import Dict, List, Optional
 
 
-class CosasValidas:
+class Valid_List:
 
     valid_zones = {
         "normal",

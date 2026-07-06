@@ -1,6 +1,6 @@
 import sys
 import re
-from models import Drone_Map, Hub, Connection, CosasValidas
+from models import Drone_Map, Hub, Connection, Valid_List
 
 
 class Parser:
@@ -32,11 +32,11 @@ class Parser:
 
         match_color = re.search(r"color=(\w+)", content)
         color = match_color.group(1) if match_color else "white"
-        CosasValidas.check_color(color)
+        Valid_List.check_color(color)
 
         match_zone = re.search(r"zone=(\w+)", content)
         zo_type = match_zone.group(1).lower().strip() if match_zone else "normal"
-        CosasValidas.check_zone(zo_type)
+        Valid_List.check_zone(zo_type)
 
         match_max_drone_nb = re.search(r"max_drones=(\d+)", content)
         max_drones = int(match_max_drone_nb.group(1)) if match_max_drone_nb else 1
