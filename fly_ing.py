@@ -172,29 +172,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
- 
-''' 
-   TODO (Pendientes de implementar)
-
-    Validaciones requeridas al terminar el archivo (Post-parsing)
-    ----------------------------------------------------------
-    - Verificar la existencia obligatoria de la ruta: El enunciado exige que el mapa tenga 
-      exactamente un 'start_hub' y un 'end_hub'. Al finalizar la lectura de todas las líneas, 
-      se debe comprobar que 'self.map.start_hub' y 'self.map.end_hub' no sean None.
-
-    Restricciones de caracteres y formato en nombres
-    ------------------------------------------------
-    - Validar caracteres prohibidos en nombres de Hubs: Los nombres de zona no pueden contener 
-      espacios ni guiones ("-"), ya que el guión está explícitamente reservado como separador 
-      para las líneas de "connection:". Añadir validación 'if "-" in name:'.
-
-    Robustez y control de formato estricto
-    --------------------------------------
-    - Validar que 'nb_drones:' sea siempre la primera instrucción válida/leída del archivo.
-    - Control de excepciones genéricas: Asegurar que ante cualquier línea malformada inesperada 
-      el programa no haga un crash directo (traceback), sino que se capture elegantemente 
-      mostrando el error por 'sys.stderr' y finalizando con 'sys.exit(1)'.
-
-    '''
