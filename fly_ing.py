@@ -1,6 +1,6 @@
 import sys
 import re
-from models import Drone_Map, Hub, Connection
+from models import Drone_Map, Hub, Connection, CosasValidas
 
 
 class Parser:
@@ -28,33 +28,45 @@ class Parser:
             sys.exit(1)
 
 
-    def parse_hub_content(self, content: str) -> tuple[str, int, int, str]:
+    def parse_hub_content(self, content: str) -> tuple[str, int, int, str, str, int]:
 
         match_color = re.search(r"color=(\w+)", content)
         color = match_color.group(1) if match_color else "white"
 
-        main_part = re.sub(r"\[.*?\]", "", content).strip()
-        parts = main_part.split()
-        print(parts)
-        main_part = re.sub(r"\[.*?\]", "", content).strip()
-        parts = main_part.split()
-        print(parts)
+        CosasValidas.check_color(color)
 
+        match_zone = re.search(r"zone=(\w+)", content)
+        zo_type = match_zone.group(1).lower().strip() if match_zone else "normal"
+
+        if zo_type not in ["normal", "blocked", "restricted", "priority"]:
+            raise ValueError(f"Tipo de zona inválido: '{zo_type}'")
+
+        match_max_drone_nb = re.search(r"max_drones=(\d+)", content)
+        max_drones = int(match_max_drone_nb.group(1)) if match_max_drone_nb else 1
+
+        main_part = re.sub(r"\[.*?\]", "", content).strip()
+        parts = main_part.split()
+        
+        print(parts)
 
         if len(parts) != 3:
             raise ValueError(f"Formato de hub inválido: '{content}'")
 
         name, x_str, y_str = parts
-        return name, int(x_str), int(y_str), color
+        return name, int(x_str), int(y_str), zo_type, color, int(max_drones)
 
 
     def parse_line(self, line: str, line_num: int) -> None:
 
         if line.startswith("nb_drones:"):
-            self.nb_drones = int(line.split(":")[1].strip())
-            
-            # BUSCAR CUAL ES EL NUMERO DE DRONES DONDE PETA
+            try:
+                self.nb_drones = int(line.split(":")[1].strip())
 
+            except ValueError:
+                print(f"Error en línea {line_num}: 'nb_drones' debe ser un número entero.", file=sys.stderr)
+                sys.exit(1)
+
+            # BUSCAR CUAL ES EL NUMERO DE DRONES DONDE PETA
             if self.nb_drones <= 0 or self.nb_drones >= 500:
                 raise ValueError("Número de drones inváildo")
 
@@ -64,17 +76,17 @@ class Parser:
             content = content.strip()
 
             try:
-                name, x, y, color = self.parse_hub_content(content)
+                name, x, y, zo_type, color, max_drones = self.parse_hub_content(content)
                 
                 match prefix:
                     case "start_hub":
-                        nuevo_hub = Hub(name, x, y, color, "start")
+                        nuevo_hub = Hub(name, x, y, zo_type, color, "start", max_drones)
 
                     case "end_hub":
-                        nuevo_hub = Hub(name, x, y, color, "end")
+                        nuevo_hub = Hub(name, x, y, zo_type, color, "end", max_drones)
 
                     case "hub":
-                        nuevo_hub = Hub(name, x, y, color, "normal")
+                        nuevo_hub = Hub(name, x, y, zo_type, color, "normal", max_drones)
                         self.hub_counter += 1
 
                     case _:
@@ -92,6 +104,9 @@ class Parser:
 
         elif line.startswith("connection:"):
             _, content = line.split(":", 1)
+
+            match_capacity = re.search(r"max_link_capacity=(\d+)", content)
+            capacity = int(match_capacity.group(1)) if match_capacity else 1
 
             content_clean = re.sub(r"\[.*?\]", "", content).strip()
 
@@ -116,7 +131,7 @@ class Parser:
 
             self.connection_counter += 1
             new_connection = Connection(
-                f"Conn{self.connection_counter}", first_hub, second_hub
+                f"Conn{self.connection_counter}", first_hub, second_hub, capacity
                 )
             self.map.add_connection(new_connection)
 
@@ -148,8 +163,6 @@ def main() -> None:
 
     # PRUEBAS
     parser.print_avances()
-
-    
 
 
 if __name__ == "__main__":

@@ -1,22 +1,79 @@
+import sys
 from typing import Dict, List, Optional
 
 
-VALID_ZONES= {"normal", "blocked", "restricted", "priority"}
+class CosasValidas:
 
+    valid_zones = {
+        "normal",
+        "blocked",
+        "restricted",
+        "priority"
+        }
+
+    valid_colors = {
+        "green": "\033[32m",
+        "yellow": "\033[33m",
+        "red": "\033[31m",
+        "blue": "\033[34m",
+        "cyan": "\033[36m",
+        "magenta": "\033[35m",
+        "white": "\033[37m",
+        "purple": "\033[35;1m",
+        "orange": "\033[38;5;208m",
+        "brown": "\033[38;5;130m",
+        "maroon": "\033[38;5;88m",
+        "black": "\033[90m",
+        "gold": "\033[33;1m",
+        "violet": "\033[35;1m",
+        "crimson": "\033[31;1m",
+        "darkred": "\033[31m",
+        "rainbow": "\033[36;1m",
+        "lime": "\033[38;5;118m",
+        "gray": "\033[38;5;244m",
+        "marron": "\033[38;5;88m",
+        "darked": "\033[38;5;52m"
+    }
+
+
+    @classmethod
+    def check_color(self, color: str) -> None:
+
+        try:
+            if not color in self.valid_colors:
+                raise
+
+        except:
+            print(f"Color no válido {color}")
+            sys.exit(1)
+
+
+    @classmethod
+    def check_zone(self, Zone: str) -> None:
+
+        try:
+            if not Zone in self.valid_colors:
+                raise
+
+        except:
+            print(f"Zona no válida {Zone}")
+            sys.exit(1)
+        
 
 class Hub:
     def __init__(
             self, name: str, x: int, y: int, zo_type: str = "normal",
-            color: str = "white", max_drones: int = 1) -> None:
-        
+            color: str = "white", hub_type: str = "normal",
+            max_drones: int = 1) -> None:
+
         self.name: str = name
         self.x: int = x
         self.y: int = y
         self.zo_type: str = zo_type
         self.color: str = color
+        self.hub_type: str = hub_type
         self.max_drones: int = max_drones
 
-        print ("HELOOOOUUUUU", self.max_drones)
 
 class Connection:
     def __init__(
@@ -51,12 +108,24 @@ class Drone_Map:
         self.start_hub: Optional[Hub] = None
         self.end_hub: Optional[Hub] = None
     
-    def add_hub(self, hub:Hub) -> None:
+    # ahora controla start y end
+    def add_hub(self, hub: Hub) -> None:
 
-        if hub.name not in self.hubs:
-            self.hubs[hub.name] = hub
-        else:
+        if hub.name in self.hubs:
             raise ValueError(f"Error: El Hub con nombre '{hub.name}' ya existe.")
+
+        if hub.hub_type == "start":
+            if self.start_hub is not None:
+                raise ValueError("Error: ya existe un start_hub.")
+            self.start_hub = hub
+
+        elif hub.hub_type == "end":
+            if self.end_hub is not None:
+                raise ValueError("Error: ya existe un end_hub.")
+            self.end_hub = hub
+
+        self.hubs[hub.name] = hub
+
 
     def add_connection(self, connection:Connection) -> None:
 
