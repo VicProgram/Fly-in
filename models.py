@@ -37,27 +37,15 @@ class CosasValidas:
 
 
     @classmethod
-    def check_color(self, color: str) -> None:
-
-        try:
-            if not color in self.valid_colors:
-                raise
-
-        except:
-            print(f"Color no válido {color}")
-            sys.exit(1)
+    def check_color(cls, color: str) -> None:
+        if color not in cls.valid_colors:
+            raise ValueError(f"Color no válido: '{color}'")
 
 
     @classmethod
-    def check_zone(self, Zone: str) -> None:
-
-        try:
-            if not Zone in self.valid_colors:
-                raise
-
-        except:
-            print(f"Zona no válida {Zone}")
-            sys.exit(1)
+    def check_zone(cls, zone: str) -> None:
+        if zone not in cls.valid_zones:
+            raise ValueError(f"Zona no válida: '{zone}'")
         
 
 class Hub:
@@ -107,6 +95,7 @@ class Drone_Map:
         self.connections:list[Connection] = []
         self.start_hub: Optional[Hub] = None
         self.end_hub: Optional[Hub] = None
+        self.used_coords: set = set()
     
     # ahora controla start y end
     def add_hub(self, hub: Hub) -> None:
@@ -123,6 +112,10 @@ class Drone_Map:
             if self.end_hub is not None:
                 raise ValueError("Error: ya existe un end_hub.")
             self.end_hub = hub
+        
+        if (hub.x, hub.y) in self.used_coords:
+            raise ValueError(f"Error: ya existe un hub en la coordenada ({hub.x}, {hub.y}).")
+        self.used_coords.add((hub.x, hub.y))
 
         self.hubs[hub.name] = hub
 

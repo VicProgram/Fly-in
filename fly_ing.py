@@ -32,22 +32,19 @@ class Parser:
 
         match_color = re.search(r"color=(\w+)", content)
         color = match_color.group(1) if match_color else "white"
-
         CosasValidas.check_color(color)
 
         match_zone = re.search(r"zone=(\w+)", content)
         zo_type = match_zone.group(1).lower().strip() if match_zone else "normal"
-
-        if zo_type not in ["normal", "blocked", "restricted", "priority"]:
-            raise ValueError(f"Tipo de zona inválido: '{zo_type}'")
+        CosasValidas.check_zone(zo_type)
 
         match_max_drone_nb = re.search(r"max_drones=(\d+)", content)
         max_drones = int(match_max_drone_nb.group(1)) if match_max_drone_nb else 1
+        
 
         main_part = re.sub(r"\[.*?\]", "", content).strip()
         parts = main_part.split()
         
-        print(parts)
 
         if len(parts) != 3:
             raise ValueError(f"Formato de hub inválido: '{content}'")
@@ -61,16 +58,17 @@ class Parser:
         if line.startswith("nb_drones:"):
             try:
                 self.nb_drones = int(line.split(":")[1].strip())
+                if self.nb_drones <= 0 or self.nb_drones >= 500:
+                    raise ValueError("Número de drones inválido")
 
-            except ValueError:
-                print(f"Error en línea {line_num}: 'nb_drones' debe ser un número entero.", file=sys.stderr)
+            except ValueError as e:
+                print(f"Error en línea {line_num}: {e}", file=sys.stderr)
                 sys.exit(1)
 
-            # BUSCAR CUAL ES EL NUMERO DE DRONES DONDE PETA
-            if self.nb_drones <= 0 or self.nb_drones >= 500:
-                raise ValueError("Número de drones inváildo")
+            except IndexError:
+                print(f"Error en línea {line_num}: falta ':' en 'nb_drones'.", file=sys.stderr)
+                sys.exit(1)
 
-            
         elif any(line.startswith(p) for p in ["hub:", "start_hub:", "end_hub:"]):
             prefix, content = line.split(":", 1)
             content = content.strip()
@@ -148,8 +146,6 @@ class Parser:
         print(f"Mapa cargado exitosamente. Drones totales: {self.nb_drones}")
         print(f"Mapa cargado exitosamente. Hubs totales: {self.hub_counter}")
         print(f"Mapa cargado exitosamente. Conexiones totales: {self.connection_counter}")
-
-
 
 
 def main() -> None:
