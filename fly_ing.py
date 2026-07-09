@@ -19,8 +19,12 @@ class Parser:
 
                     if not clean_line or clean_line.startswith("#"):
                         continue
+                    try:
+                        self.parse_line(clean_line, line_num)
+                    except Exception as e:
+                        print(f"Ha ocurrido un error en la línea {line_num}")
+                        sys.exit(1)
 
-                    self.parse_line(clean_line, line_num)
 
         except FileNotFoundError:
             print(
@@ -41,8 +45,6 @@ class Parser:
 
         match_color = re.search(r"color=(\w+)", content)
         color = match_color.group(1).lower().strip() if match_color else "none"
-        #color = match_color.group(1).lower().strip() if match_color else "white"
-        #Valid_List.check_color(color)
 
         match_zone = re.search(r"zone=(\w+)", content)
         zo_type = match_zone.group(1).lower().strip() if match_zone else "normal"
@@ -50,13 +52,12 @@ class Parser:
 
         match_max_drone_nb = re.search(r"max_drones=(\d+)", content)
         max_drones = int(match_max_drone_nb.group(1)) if match_max_drone_nb else 1
+
         if max_drones <= 0:
             raise ValueError(f"max_drones debe ser positivo: '{max_drones}'")
 
-
         main_part = re.sub(r"\[.*?\]", "", content).strip()
-        parts = main_part.split()
-        
+        parts = main_part.split()  
 
         if len(parts) != 3:
             raise ValueError(f"Formato de hub inválido: '{content}'")
@@ -94,7 +95,6 @@ class Parser:
                     )
                 sys.exit(1)
 
-
         if any(line.startswith(p) for p in Valid_List.valid_hubs):
             prefix, content = line.split(":", 1)
             content = content.strip()
@@ -103,7 +103,6 @@ class Parser:
                 name, x, y, zo_type, color, max_drones = self.parse_hub_content(content)
                 
                 match prefix:
-
 
                     case "start_hub":
                         nuevo_hub = Hub(name, x, y, zo_type, color, "start", max_drones)
@@ -114,7 +113,6 @@ class Parser:
                     case "hub":
                         nuevo_hub = Hub(name, x, y, zo_type, color, "normal", max_drones)
                         self.hub_counter += 1
-
                     case _:
                         print(
                             f"Error de sintaxis en línea {line_num}: "
@@ -171,7 +169,6 @@ class Parser:
             except IndexError:
                 print(f"Error en línea {line_num}: conexión malformada, falta ':'.", file=sys.stderr)
                 sys.exit(1)
-    
 
     # PRUEBAS
     def print_avances(self) -> None:

@@ -129,3 +129,45 @@ class Drone_Map:
         else:
             raise ValueError(f"Error: La conexion '{connection.name}' ya existe")
 
+
+
+class Drone:
+    def __init__(self, id_drone: int, curr_loc: Hub) -> None:
+        self.id: int = id_drone
+        self.location: Hub | Connection = curr_loc
+        self.in_transit: bool = False
+        self.turn: int = 0
+        self.has_arrived: bool = False
+
+    def get_drone_info(self) -> None:
+
+        print(f"Drone_id: {self.id}")
+        print(f"Drone location: {self.id}")
+        print(f"In transit: {self.id}")
+        print(f"Turn number: {self.id}")
+        print(f"Has arrived?: {self.id}")
+
+
+class Solver:
+    def __init__(self, drone_map: Drone_Map, drones_number: int) -> None:
+        self.drone_map: Drone_Map = drone_map
+        self.curr_turn: int = 0
+        self.history: list = []
+
+        self.drones: list[Drone] = [
+            Drone(
+                f"D{i}", self.drone_map.start_hub) for i in range(1, drones_number + 1)
+        ]
+
+
+    def get_drones_in_hub(self, hub: Hub) -> int:
+        return sum(1 for d in self.drones if d.location == hub)
+    
+    def get_drones_in_con(self, conn: Connection) -> str:
+        return sum(1 for d in self.drones if d.location == conn)
+    
+    def can_move_hub(self, hub: Hub) -> bool:
+        return self.get_drones_in_hub(hub) < hub.max_drones
+    
+    def can_move_conn(self, conn: Connection) -> bool:
+        return self.get_drones_in_con(conn) < conn.capacity
