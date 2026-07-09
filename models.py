@@ -171,3 +171,12 @@ class Solver:
     
     def can_move_conn(self, conn: Connection) -> bool:
         return self.get_drones_in_con(conn) < conn.capacity
+    
+
+    def run(self) -> None:
+        # RESOLVER EL MAPA
+
+
+        print(f"\n--- Iniciando simulación con {len(self.drones)} drones ---")
+        # Ejemplo de prueba de ocupación inicial
+        print(f"Drones en start_hub ({self.map.start_hub.name}): {self.get_drones_in_hub(self.map.start_hub)}")
