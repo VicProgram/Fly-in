@@ -119,3 +119,224 @@ Mi propuesta de próximo paso concreto: empecemos por quitar/simplificar check_c
 (es rápido y corrige un bug de sobre-validación que contradice el subject),
 y luego forzamos que nb_drones: sea la primera línea. ¿Te preparo el código de las dos cosas juntas?
 '''
+
+
+Vale, vamos a hacer un repaso completo de todo el proyecto, desde donde estás ahora hasta la entrega final. Te lo organizo en fases, en el orden en el que tiene sentido abordarlas, explicando el "por qué" y el "cómo pensarlo", sin código, para que la lógica quede clara y luego tú la traduzcas a Python.
+
+---
+
+## FASE 1 — Terminar de cerrar el parser (lo que ya casi tienes)
+
+Esto es lo más cercano a estar acabado, así que ciérralo antes de pasar a nada nuevo.
+
+**1.1 — `nb_drones:` como primera línea obligatoria**
+
+Ahora mismo tu parser lee el archivo línea a línea y procesa `nb_drones:` en cualquier posición donde aparezca. El enunciado pide que sea específicamente la **primera línea válida** del archivo (ignorando líneas vacías y comentarios que empiezan por `#`).
+
+La forma de pensarlo: antes de entrar en tu bucle normal de "leer todas las líneas y procesarlas una a una", necesitas un primer paso que sea "leer la primera línea no vacía y no comentario, y comprobar que efectivamente es una línea `nb_drones:`". Si no lo es, es un error de formato y el programa debe pararse ahí, con su mensaje correspondiente. Sólo después de superar esa comprobación, sigues con el resto del archivo normalmente (y ya no hace falta que vuelvas a tratar `nb_drones:` como caso especial en las siguientes líneas, porque ya sabes que sólo puede aparecer una vez, al principio).
+
+**1.2 — Red de seguridad para excepciones no previstas**
+
+El enunciado es tajante: si el programa se rompe con un traceback durante la evaluación, se considera "no funcional", sin matices. Tú ya capturas `ValueError` e `IndexError` en los sitios que se te han ido ocurriendo, pero puede aparecer algo que no hayas anticipado (un `KeyError`, un `AttributeError`, un carácter raro que rompe una conversión).
+
+La solución conceptual es tener una "malla de seguridad" al nivel más alto posible —idealmente envolviendo toda la llamada a `parse_line` dentro del bucle de `parse_file`— que capture *cualquier* excepción no prevista (`Exception` genérico), imprima un mensaje de error decente indicando la línea, y termine el programa de forma controlada. Es tu último recurso, no debería activarse casi nunca si ya tienes los `except` específicos bien puestos, pero te protege del "traceback sorpresa" el día de la evaluación con un mapa que no habías probado.
+
+**1.3 — Revisión final de todos los mapas de prueba**
+
+Una vez tengas 1.1 y 1.2, vuelve a correr los nueve mapas oficiales, y además créate tú mismo un par de mapas "rotos a propósito" (sin `nb_drones:` al principio, con un color de dos palabras, con una conexión que referencia un hub inexistente, etc.) para confirmar que cada uno de ellos produce un mensaje de error legible y no un crash.
+
+---
+
+## FASE 2 — Diseñar el modelo de datos que necesita la simulación
+
+Aquí es donde el proyecto realmente empieza, porque hasta ahora sólo tienes "el mapa cargado en memoria", pero no tienes ningún concepto de "dron", "turno" o "posición actual".
+
+**2.1 — La clase Drone**
+
+Necesitas una clase nueva que represente un dron individual. Como mínimo, un dron necesita saber: su identificador (D1, D2...), en qué hub o conexión está físicamente ahora mismo, si está "en tránsito" hacia un hub restringido (porque eso ocupa dos turnos, ver Fase 4), cuántos turnos lleva en tránsito si aplica, y si ya ha llegado al `end_hub` (en cuyo caso deja de ser relevante para la simulación).
+
+**2.2 — Extender Drone_Map o crear una clase Simulation**
+
+Tu `Drone_Map` actual es sólo la estructura estática del grafo (hubs y conexiones). Vas a necesitar algo adicional —una clase `Simulation` (nombre orientativo) que tenga: una referencia al `Drone_Map`, la lista de drones activos, el turno actual, y el registro de movimientos de cada turno para poder imprimir la salida al final. Esta separación es importante: el mapa no cambia durante la simulación, pero el estado de los drones sí, turno a turno. Mantenerlos separados hace que el código sea mucho más fácil de razonar y depurar.
+
+**2.3 — Contadores de ocupación en tiempo real**
+
+Aquí hay un punto sutil y central en el proyecto: necesitas saber, en cada turno, cuántos drones hay ocupando cada hub y cada conexión, para poder respetar `max_drones` y `max_link_capacity`. Esto no es estático (no es lo mismo que la capacidad máxima, que es fija desde el parseo) sino dinámico: cambia turno a turno según por dónde estén los drones en ese momento. Necesitas una forma de consultar "¿cuántos drones hay ahora mismo en este hub?" y "¿cuántos drones están ahora mismo usando esta conexión?", y esa información se actualiza cada vez que mueves un dron.
+
+---
+
+## FASE 3 — El motor de simulación: reglas de movimiento turno a turno
+
+Esta es la parte más delicada del proyecto conceptualmente, así que vamos despacio.
+
+**3.1 — Qué puede hacer un dron en un turno**
+
+En cada turno, cada dron activo (que no haya llegado ya al final) tiene exactamente tres opciones: moverse a un hub adyacente conectado (si hay capacidad), quedarse quieto (esperar), o —si está en tránsito multi-turno hacia una zona restringida— continuar ese tránsito de forma automática (no elige, ya está comprometido con ese movimiento, ver Fase 4).
+
+**3.2 — El orden importa: primero libera, luego ocupa**
+
+El enunciado es explícito en esto: cuando calculas si un dron puede entrar en un hub, primero tienes que tener en cuenta que los drones que **salen** de ese hub en ese mismo turno liberan su plaza, y sólo después comprobar si hay sitio para los que **entran**. Esto significa que no puedes evaluar los movimientos dron por dron de forma aislada; tienes que evaluar el turno completo como una transacción: primero calcular qué drones se van de dónde, aplicar esas salidas, y sólo entonces comprobar si los movimientos de entrada son válidos con la capacidad ya liberada.
+
+La forma más limpia de pensarlo es: para cada turno, primero decides (mediante tu algoritmo de pathfinding, Fase 5) qué movimiento *querría* hacer cada dron. Luego validas ese conjunto de movimientos como un todo: ¿provocan que algún hub o conexión exceda su capacidad, teniendo en cuenta las salidas simultáneas? Si un movimiento en concreto no es válido, ese dron concreto se queda esperando ese turno (no rompe la simulación entera, sólo ese dron no avanza).
+
+**3.3 — Costes de movimiento según tipo de zona**
+
+Cada vez que un dron se mueve hacia una zona, el coste en turnos depende del tipo de la zona de **destino**: normal y priority cuestan 1 turno, restricted cuesta 2 turnos, y blocked simplemente no se puede entrar nunca (ninguna ruta puede pasar por ahí, ni siquiera de paso). Esto afecta tanto a tu algoritmo de pathfinding (para calcular cuál es el camino más corto en turnos, no en número de saltos) como al motor de simulación (para saber cuántos turnos tarda un dron en completar ese movimiento concreto).
+
+**3.4 — Prioridad de las zonas "priority"**
+
+El enunciado pide que estas zonas, aunque cuesten lo mismo que una normal (1 turno), sean *preferidas* por el algoritmo de pathfinding cuando haya varias rutas de coste igual. Esto normalmente se traduce en que, al comparar rutas alternativas del mismo coste total, tu algoritmo debería inclinarse por la que pase por más zonas de tipo priority. Es un criterio de desempate, no una regla dura.
+
+---
+
+## FASE 4 — El caso especial de las zonas restringidas (movimiento multi-turno)
+
+Esta es probablemente la parte más fácil de hacer mal si no se piensa con calma, así que le dedico un apartado propio.
+
+**4.1 — Qué significa "estar en tránsito"**
+
+Cuando un dron decide moverse hacia una zona restringida, ese movimiento no se completa en un turno, sino en dos. Durante el turno intermedio, el dron ya no está en el hub de origen (esa plaza se libera inmediatamente), pero tampoco está aún en el hub de destino: está "en la conexión", en tránsito. Esto es importante porque durante ese turno intermedio, el dron ocupa capacidad de la **conexión** (no de ningún hub), y esa conexión tiene su propio límite (`max_link_capacity`).
+
+**4.2 — El compromiso es irreversible**
+
+El enunciado deja claro que, una vez que un dron empieza ese tránsito de dos turnos, está obligado a llegar al destino en el turno siguiente. No puede "esperar" a mitad de camino ni "cambiar de opinión" y volver atrás. Esto significa que tu algoritmo de pathfinding tiene que decidir *antes* de lanzar ese movimiento si realmente va a haber sitio en el hub de destino cuando el dron llegue, porque no hay marcha atrás una vez iniciado el tránsito. Es una decisión que se toma con dos turnos de antelación, no turno a turno como el resto de movimientos.
+
+**4.3 — Cómo representarlo en tu modelo de Drone**
+
+Tu clase `Drone` necesita poder representar el estado "en tránsito hacia X, con Y turnos restantes para llegar". Cuando decides iniciar este movimiento, marcas el dron con ese estado; en el turno siguiente, simplemente decrementas el contador, y cuando llega a cero, completas el movimiento (el dron pasa a estar físicamente en el hub de destino, libera la conexión, y ocupa su plaza en el hub).
+
+**4.4 — El formato de salida durante el tránsito**
+
+Fíjate que el formato de salida pide `D<ID>-<connection>` para un dron que sigue en vuelo hacia una zona restringida (en vez de `D<ID>-<zone>`). Esto significa que tienes que llevar también el nombre de la conexión (no sólo del hub destino) para poder imprimirlo correctamente durante ese turno intermedio.
+
+---
+
+## FASE 5 — El algoritmo de pathfinding
+
+**5.1 — Qué algoritmo usar**
+
+Como no puedes usar librerías de grafos (networkx, graphlib, etc. están prohibidas explícitamente), tienes que implementar tú mismo un algoritmo de camino más corto. El clásico para este tipo de problema (grafo con pesos no negativos, donde quieres el camino más barato en "coste total de turnos") es Dijkstra. Es relativamente sencillo de programar a mano: mantienes una distancia acumulada a cada hub, empiezas desde el `start_hub` con distancia 0, y vas expandiendo hacia los vecinos actualizando la distancia si encuentras un camino más barato, hasta procesar todos los hubs alcanzables. El "peso" de cada arista es el coste en turnos del tipo de zona de destino (normal/priority = 1, restricted = 2, blocked = infinito o simplemente no se recorre).
+
+**5.2 — Pathfinding estático vs. dinámico**
+
+Aquí hay una decisión de diseño importante: puedes calcular la ruta más corta una sola vez al principio (como si el mapa fuera fijo, ignorando otros drones), y hacer que todos los drones sigan esa misma ruta ideal. Pero como hay múltiples drones compitiendo por la misma capacidad limitada de hubs y conexiones, es muy probable que la ruta "ideal" para un dron individual no sea viable para todos a la vez sin generar atascos. El enunciado pide explícitamente "distribución de drones a través de múltiples caminos" y "evitar conflictos y deadlocks", lo que sugiere que necesitas algo más inteligente que "todos siguen la ruta más corta y ya está".
+
+Un enfoque razonable: calcula de antemano varias rutas alternativas razonablemente buenas (no sólo la óptima, sino las siguientes mejores), y luego, turno a turno, cuando un dron tiene que decidir su siguiente paso, elige dinámicamente basándose en qué rutas tienen capacidad libre en ese momento, en vez de comprometerse ciegamente a una sola ruta fija desde el principio. Esto es más complejo de programar, pero es lo que realmente te va a permitir cumplir los objetivos de rendimiento (turnos) del enunciado, especialmente en mapas medium/hard con más drones que rutas.
+
+**5.3 — Qué hacer cuando no hay movimiento posible**
+
+Si un dron no puede avanzar en un turno determinado (porque el siguiente hub de su ruta está lleno, o la conexión está saturada), simplemente se queda esperando ese turno. Esto es una espera "estratégica", no un fallo: el objetivo es que, turno a turno, vuelvas a evaluar si ya hay hueco. Aquí es donde puede aparecer el riesgo de **deadlock**: dos drones esperándose mutuamente sin que ninguno pueda avanzar nunca. Tienes que pensar en mecanismos para evitar esto, por ejemplo dando prioridad a unos drones sobre otros según algún criterio consistente (por ejemplo, el que lleva más turnos esperando, o el identificador del dron), para que siempre haya progreso posible y no se quede la simulación congelada para siempre.
+
+---
+
+## FASE 6 — El bucle principal de la simulación
+
+**6.1 — Estructura del bucle**
+
+La simulación completa es un bucle que repite, turno a turno: (1) para cada dron activo, decide qué movimiento intenta hacer (según tu algoritmo de pathfinding y el estado actual del mapa); (2) valida ese conjunto de movimientos respetando las reglas de capacidad y liberación explicadas en la Fase 3; (3) aplica los movimientos válidos, actualizando la posición de cada dron; (4) registra qué se ha movido este turno, para la salida final; (5) comprueba si todos los drones han llegado al `end_hub`. Si es así, termina la simulación; si no, incrementa el contador de turno y repite.
+
+**6.2 — Condición de parada y drones "entregados"**
+
+En cuanto un dron llega al `end_hub`, deja de ser "activo": ya no participa en las siguientes rondas de decisión de movimiento, no ocupa capacidad de nada, y ya no aparece en las líneas de salida de turnos posteriores. La simulación entera termina cuando la lista de drones activos queda vacía.
+
+---
+
+## FASE 7 — Formato de salida de la simulación
+
+**7.1 — Una línea por turno**
+
+Cada turno de la simulación genera exactamente una línea de texto, donde aparecen únicamente los drones que se movieron ese turno (los que se quedaron esperando simplemente no aparecen en esa línea), separados por espacios, con el formato `D<ID>-<destino>`.
+
+**7.2 — Cuidado con el orden de generación**
+
+Es buena práctica ir guardando estas líneas en una lista según se van generando, turno a turno, durante la simulación, y luego imprimirlas todas juntas al final (o turno a turno según se generan, si prefieres verlo en vivo). Lo importante es que el formato final coincida exactamente con lo que pide el enunciado: sin líneas vacías intermedias, sin drones "fantasma" que ya llegaron, y respetando el formato de conexión para los que están en tránsito hacia zonas restringidas.
+
+---
+
+## FASE 8 — Representación visual
+
+**8.1 — Qué exige el enunciado exactamente**
+
+Tienes que ofrecer feedback visual, ya sea mediante colores en terminal, una interfaz gráfica, o ambas. Dado que ya tienes toda la infraestructura de colores en tu `Valid_List` (los códigos ANSI), la vía más rápida y coherente con lo que ya llevas hecho es la salida en terminal coloreada.
+
+**8.2 — Qué mostrar**
+
+Como mínimo, tendría sentido mostrar en cada turno el estado del mapa (qué hubs están ocupados y por cuántos drones, usando el color asignado a cada hub si tiene uno, o algún color por defecto), y resaltar visualmente los movimientos que ocurren ese turno. Si quieres ir más allá, podrías mostrar una especie de "mapa ASCII" con las posiciones relativas de los hubs (usando las coordenadas x, y que ya parseas) y los drones moviéndose sobre él turno a turno, lo cual además demuestra mejor "cómo tu representación visual ayuda a entender la simulación", que es una de las preguntas que hace el enunciado.
+
+**8.3 — No lo dejes para el final**
+
+Aunque es una parte "extra" desde el punto de vista funcional (la simulación funcionaría igual sin ella), el enunciado la pide como parte obligatoria y afecta a la evaluación de calidad. Vale la pena reservarle tiempo real, no hacerla en los últimos 20 minutos.
+
+---
+
+## FASE 9 — Métricas opcionales (recomendadas, no obligatorias)
+
+El enunciado sugiere mostrar cosas como el número de drones movidos por turno, el promedio de turnos por dron, o el coste total de camino acumulado. No son obligatorias para la nota, pero ayudan a que un compañero evaluándote en el peer-review entienda rápidamente si tu solución es buena o no. Es relativamente barato añadir estos contadores al final de la simulación, ya que la mayoría de esta información la vas a tener disponible de todas formas por cómo llevas la cuenta de turnos y movimientos.
+
+---
+
+## FASE 10 — Calidad de código exigida transversalmente
+
+Esto no es una fase que hagas "al final", sino algo que deberías ir aplicando a medida que escribes cada pieza, porque si lo dejas para el final es mucho más tedioso.
+
+**10.1 — Type hints en todo**
+
+Cada función, método y variable relevante necesita anotaciones de tipo usando el módulo `typing`. Esto ya lo vienes haciendo bien en el parser y en los modelos; simplemente mantén la disciplina en el código nuevo de la simulación.
+
+**10.2 — mypy sin errores**
+
+El enunciado exige pasar `mypy` sin errores, con las flags específicas que indica el Makefile (`--warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs`). Vale la pena correr `mypy` de vez en cuando mientras desarrollas, no sólo al final, porque los errores de tipado se acumulan y son más difíciles de rastrear en bloque que uno a uno.
+
+**10.3 — flake8 sin errores**
+
+Estilo de código: longitud de línea, espacios, imports no usados, etc. Es la parte más mecánica de cumplir, pero también hay que dedicarle su tiempo.
+
+**10.4 — Docstrings**
+
+Cada función y clase necesita una docstring siguiendo un estilo consistente (Google o NumPy), explicando qué hace, qué parámetros recibe y qué devuelve. Esto es fácil de posponer y luego darte cuenta de que tienes 40 funciones sin documentar; mejor ir escribiéndolas según programas cada pieza.
+
+**10.5 — Todo debe ser orientado a objetos**
+
+El enunciado lo exige explícitamente como restricción dura. Repasa que no se te haya colado ninguna función suelta a nivel de módulo que debería ser un método de alguna clase (esto ya te pasó una vez sin querer con `parse_line`, así que vale la pena revisar el archivo entero al final buscando funciones que no cuelguen de ninguna clase, salvo el propio `main()`).
+
+---
+
+## FASE 11 — El Makefile
+
+Necesitas cuatro reglas obligatorias (`install`, `run`, `debug`, `clean`) y una opcional (`lint`, que ya mencionaste que tienes, y opcionalmente `lint-strict`). Revisa que `install` instale dependencias reales (aunque tu proyecto no tenga dependencias externas más allá de la librería estándar, la regla debe existir igualmente), que `run` ejecute tu script principal pasándole un mapa de ejemplo o aceptando un argumento, que `debug` lance el script bajo `pdb`, y que `clean` borre `__pycache__` y `.mypy_cache`.
+
+---
+
+## FASE 12 — Tests propios (no se entregan, pero se recomiendan)
+
+Crea un conjunto de pruebas con `pytest` o `unittest` que cubran casos límite: un mapa sin `start_hub`, un mapa con una zona bloqueada en medio del único camino posible, un mapa donde la capacidad de una conexión obliga a esperas, etc. Estas pruebas no forman parte de la entrega ni se evalúan directamente, pero te dan seguridad de que tu simulación se comporta bien antes de que lo compruebe un compañero en el peer-review, que es un momento mucho peor para descubrir un bug.
+
+---
+
+## FASE 13 — El README.md
+
+Tiene una estructura obligatoria que no puedes improvisar:
+
+- La primera línea, literal, en cursiva, con el formato exacto que pide el enunciado (con tu login o logins de 42).
+- Una sección **Description** explicando de qué va el proyecto.
+- Una sección **Instructions** con cómo instalar y ejecutar.
+- Una sección **Resources** listando qué documentación o tutoriales usaste, y explicando específicamente cómo usaste IA (para qué tareas, qué partes del proyecto), porque el enunciado lo pide de forma explícita como parte de la transparencia exigida.
+- Además, el enunciado pide expresamente que documentes tus decisiones de algoritmo (por qué elegiste Dijkstra, cómo gestionas las esperas y los conflictos) y cómo funciona tu representación visual.
+
+Todo en inglés, tal como pide el enunciado.
+
+---
+
+## FASE 14 — Revisión final antes de entregar
+
+Antes de dar el proyecto por terminado, repasa: que todos los archivos estén en la raíz del repositorio (no en subcarpetas, salvo lo que necesites como `maps/`); que el `.gitignore` excluya artefactos de Python (`__pycache__`, `.mypy_cache`, entornos virtuales); que hayas probado con mapas que tú mismo hayas inventado, no sólo los proporcionados, porque el enunciado avisa explícitamente de que los mapas de evaluación pueden ser distintos; y que puedas explicar en voz alta, sin mirar el código, cómo funciona cada pieza (parser, motor de simulación, pathfinding, visualización), porque te van a poder pedir explicaciones o incluso pequeñas modificaciones en vivo durante la evaluación.
+
+---
+
+## FASE 15 (opcional) — Bonus
+
+Sólo se revisa si el resto está perfecto. Consiste en cumplir "perfectamente" (igualar o batir) los objetivos de turnos de todos los mapas de referencia, y opcionalmente intentar resolver el mapa Challenger (25 drones) por debajo de 45 turnos. Yo no le dedicaría ni un minuto hasta que la parte obligatoria esté sólida y probada de arriba a abajo.
+
+---
+
+**Mi consejo de orden práctico:** cierra la Fase 1 (parser) esta misma sesión si puedes, porque está a un paso. Luego entra de lleno en las Fases 2 a 6, que son el núcleo real del proyecto y donde vas a pasar la mayor parte del tiempo — yo empezaría por el modelo de datos (Fase 2) y el pathfinding con Dijkstra sin drones concurrentes todavía (Fase 5.1), para tener un esqueleto que calcule "el camino más corto para un dron solo" antes de complicarlo con capacidad compartida y turnos multi-dron.

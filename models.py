@@ -51,7 +51,7 @@ class Valid_List:
 class Hub:
     def __init__(
             self, name: str, x: int, y: int, zo_type: str = "normal",
-            color: str = "white", hub_type: str = "normal",
+            color: str = "none", hub_type: str = "normal",
             max_drones: int = 1) -> None:
 
         self.name: str = name

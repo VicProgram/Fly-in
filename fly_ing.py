@@ -9,6 +9,7 @@ class Parser:
         self.nb_drones: int = 0
         self.hub_counter = 0
         self.connection_counter: int = 0
+        self.drones_parsed: bool = False
 
     def parse_file(self, map_path: str) -> None:
         try:
@@ -76,6 +77,7 @@ class Parser:
                 self.nb_drones = int(line.split(":")[1].strip())
                 if self.nb_drones <= 0 or self.nb_drones >= 500:
                     raise ValueError("Número de drones inválido")
+                self.drones_parsed = True
 
             except ValueError as e:
                 print(f"Error en línea {line_num}: {e}", file=sys.stderr)
@@ -84,8 +86,16 @@ class Parser:
             except IndexError:
                 print(f"Error en línea {line_num}: falta ':' en 'nb_drones'.", file=sys.stderr)
                 sys.exit(1)
+        else:
+            if not self.drones_parsed:
+                print(
+                    f"Error en línea {line_num}: La primera línea del archivo definir" 
+                    " 'nb_drones:'.", file=sys.stderr
+                    )
+                sys.exit(1)
 
-        elif any(line.startswith(p) for p in Valid_List.valid_hubs):
+
+        if any(line.startswith(p) for p in Valid_List.valid_hubs):
             prefix, content = line.split(":", 1)
             content = content.strip()
 
@@ -93,6 +103,7 @@ class Parser:
                 name, x, y, zo_type, color, max_drones = self.parse_hub_content(content)
                 
                 match prefix:
+
 
                     case "start_hub":
                         nuevo_hub = Hub(name, x, y, zo_type, color, "start", max_drones)
