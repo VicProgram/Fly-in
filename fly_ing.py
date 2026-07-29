@@ -18,6 +18,7 @@ def main() -> None:
     solver = Solver(drone_map, parser.nb_drones)
 
     solver.run()
+    solver.find_path()
 
 
 if __name__ == "__main__":
