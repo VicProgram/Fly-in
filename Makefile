@@ -7,7 +7,7 @@ MYPY_FLAGS  = --warn-return-any \
 FLAKE8_EXCLUDE = --exclude=venv
 MYPY_EXCLUDE   = --exclude venv
 
-SCRIPT = main.py
+SCRIPT = fly_ing.py
 
 all:	install run
 

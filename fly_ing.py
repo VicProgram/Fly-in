@@ -2,6 +2,7 @@ from parsing import Parser
 from models import Solver, Drone_Map
 import sys
 
+
 def main() -> None:
     if len(sys.argv) < 2:
         print("Uso: python3 -m tu_modulo mapa.txt", file=sys.stderr)
@@ -15,7 +16,7 @@ def main() -> None:
     parser.print_avances()
 
     solver = Solver(drone_map, parser.nb_drones)
-    
+
     solver.run()
 
 
