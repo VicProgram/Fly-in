@@ -67,6 +67,8 @@ class Hub:
         self.hub_type: str = hub_type
         self.max_drones: int = max_drones
 
+    def __repr__(self) -> str:
+        return f"Hub({self.name})"
 
 class Connection:
     def __init__(
@@ -233,5 +235,5 @@ class Solver:
                 queue.append((new_cost, neightbor_hub.name, new_path))
 
             print(queue)
-            
+
         return None

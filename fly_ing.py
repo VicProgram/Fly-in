@@ -18,7 +18,9 @@ def main() -> None:
     solver = Solver(drone_map, parser.nb_drones)
 
     solver.run()
-    solver.find_path()
+
+    camino = solver.find_path(solver.map.start_hub, solver.map.end_hub)
+    print(hub.name for hub in camino)
 
 
 if __name__ == "__main__":
