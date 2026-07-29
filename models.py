@@ -186,7 +186,6 @@
 #             )
 
 
-import sys
 from typing import Dict, List, Optional
 
 
@@ -204,6 +203,13 @@ class Valid_List:
         "restricted",
         "priority"
     }
+
+    zone_costs = {
+        "priority": 1,     # Muy rápido o preferente
+        "normal": 2,       # Coste estándar
+        "restricted": 5,   # Penalizado, solo si no hay más remedio
+        "blocked": 999999  # Inaccesible
+        }
 
     valid_colors = {
         "green": "\033[32m",
@@ -279,7 +285,7 @@ class Drone_Map:
         self.start_hub: Optional[Hub] = None
         self.end_hub: Optional[Hub] = None
         self.used_coords: set = set()
-    
+
     def add_hub(self, hub: Hub) -> None:
         if hub.name in self.hubs:
             raise ValueError(f"Error: El Hub con nombre '{hub.name}' ya existe.")
@@ -339,7 +345,6 @@ class Solver:
         return sum(1 for d in self.drones if d.location == hub)
 
     def get_drones_in_con(self, conn: Connection) -> int:
-        # Corregido: Cambiado el tipo de retorno esperado de str a int
         return sum(1 for d in self.drones if d.location == conn)
 
     def can_move_hub(self, hub: Hub) -> bool:
@@ -348,8 +353,20 @@ class Solver:
     def can_move_conn(self, conn: Connection) -> bool:
         return self.get_drones_in_con(conn) < conn.capacity
 
+    def get_move_costs(self, from_hub: Hub, to_hub: Hub, conn: Connection) -> int:
+
+        if to_hub.zo_type == "blocked" or not self.can_move_hub(to_hub):
+            return 999999
+        if not self.can_move_conn(conn):
+            return 999999
+
+        base_cost = 1
+        zone_cost = self.zone_costs.get(to_hub.zo_type, 2)
+
+        return base_cost + zone_cost
+
     def run(self) -> None:
         print(f"\n--- Iniciando simulación con {len(self.drones)} drones ---")
-        print(f"Drones en start_hub ({self.map.start_hub.name}): {self.get_drones_in_hub(self.map.start_hub)}")
-        
-        # Ya puedes continuar escribiendo tu algoritmo de búsqueda de caminos (BFS/Dijkstra) aquí
+        print(
+            f"Drones en start_hub ({self.map.start_hub.name}): {self.get_drones_in_hub(self.map.start_hub)}"
+            )
