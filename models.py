@@ -70,6 +70,7 @@ class Hub:
     def __repr__(self) -> str:
         return f"Hub({self.name})"
 
+
 class Connection:
     def __init__(
             self, name: str, zone1: Hub, zone2: Hub, capacity: int = 1

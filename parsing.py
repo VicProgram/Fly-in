@@ -133,48 +133,52 @@ class Parser:
             self.map.add_hub(nuevo_hub)
 
         elif line_stripped.startswith("connection:"):
-            _, content = line_stripped.split(":", 1)
+            try:
+                _, content = line_stripped.split(":", 1)
 
-            match_capacity = re.search(r"max_link_capacity=(\d+)", content)
-            capacity = int(match_capacity.group(1)) if match_capacity else 1
+                match_capacity = re.search(r"max_link_capacity=(\d+)", content)
+                capacity = int(match_capacity.group(1)) if match_capacity else 1
 
-            if capacity <= 0:
-                raise ValueError(
-                    f"max_link_capacity debe ser positivo: '{capacity}'"
+                if capacity <= 0:
+                    raise ValueError(
+                        f"max_link_capacity debe ser positivo: '{capacity}'"
+                    )
+
+                content_clean = re.sub(r"\[.*?\]", "", content).strip()
+
+                if "-" not in content_clean:
+                    raise ValueError("Conexión malformada.")
+
+                zone_1, zone_2 = content_clean.split("-", 1)
+                zone_1 = zone_1.strip().lower()
+                zone_2 = zone_2.strip().lower()
+
+                first_hub = self.map.hubs.get(zone_1)
+                second_hub = self.map.hubs.get(zone_2)
+
+                if not first_hub or not second_hub:
+                    raise ValueError(
+                        "zona no encontrada en la conexión "
+                        f"('{zone_1}' o '{zone_2}')."
+                    )
+
+                if first_hub is second_hub:
+                    raise ValueError(
+                        "Una conexión no puede unir un hub consigo mismo: "
+                        f"'{zone_1}'"
+                    )
+
+                self.connection_counter += 1
+                new_connection = Connection(
+                    f"Conn{self.connection_counter}",
+                    first_hub,
+                    second_hub,
+                    capacity,
                 )
+                self.map.add_connection(new_connection)
 
-            content_clean = re.sub(r"\[.*?\]", "", content).strip()
-
-            if "-" not in content_clean:
-                raise ValueError("Conexión malformada.")
-
-            zone_1, zone_2 = content_clean.split("-", 1)
-            zone_1 = zone_1.strip().lower()
-            zone_2 = zone_2.strip().lower()
-
-            first_hub = self.map.hubs.get(zone_1)
-            second_hub = self.map.hubs.get(zone_2)
-
-            if not first_hub or not second_hub:
-                raise ValueError(
-                    "zona no encontrada en la conexión "
-                    f"('{zone_1}' o '{zone_2}')."
-                )
-
-            if first_hub is second_hub:
-                raise ValueError(
-                    "Una conexión no puede unir un hub consigo mismo: "
-                    f"'{zone_1}'"
-                )
-
-            self.connection_counter += 1
-            new_connection = Connection(
-                f"Conn{self.connection_counter}",
-                first_hub,
-                second_hub,
-                capacity,
-            )
-            self.map.add_connection(new_connection)
+            except (ValueError, AttributeError, IndexError) as e:
+                raise ValueError(f"Error procesando la conexión: {e}")
 
         else:
             raise ValueError(

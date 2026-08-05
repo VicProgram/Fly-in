@@ -29,19 +29,19 @@ YA RESUELTO
 PENDIENTE — Validaciones dentro de connection:
 ===========================================================
 
-- [ ] El bloque "elif line.startswith('connection:')" TODAVÍA NO tiene
+- [OK] El bloque "elif line.startswith('connection:')" TODAVÍA NO tiene
       try/except. Cualquier fallo ahí (línea sin ':', capacity mal
       formada, etc.) hace crash sin control. Hay que envolver todo el
       bloque en try/except ValueError + except IndexError, igual que
       los otros dos bloques.
 
-- [ ] max_link_capacity debe ser entero positivo (> 0). Ahora mismo
+- [OK] max_link_capacity debe ser entero positivo (> 0). Ahora mismo
       \d+ sólo evita negativos, pero deja pasar 0.
 
-- [ ] max_drones (capacidad de zona, en hubs) debe ser entero positivo
+- [OK] max_drones (capacidad de zona, en hubs) debe ser entero positivo
       (> 0). Mismo problema: 0 pasa sin queja.
 
-- [ ] Una conexión no puede unir un hub consigo mismo
+- [OK] Una conexión no puede unir un hub consigo mismo
       (first_hub is second_hub → error).
 
 
@@ -49,11 +49,11 @@ PENDIENTE — Validaciones dentro de connection:
 PENDIENTE — Restricciones de nombres
 ===========================================================
 
-- [ ] Los nombres de hub no pueden contener "-" (reservado como
+- [OK] Los nombres de hub no pueden contener "-" (reservado como
       separador en connection:). Validar en parse_hub_content:
       if "-" in name: raise ValueError(...)
 
-- [ ] Los nombres de hub no pueden contener espacios internos.
+- [OK] Los nombres de hub no pueden contener espacios internos.
       (Verificar si esto ya queda cubierto por el split() de
       parse_hub_content, o si hace falta un chequeo explícito.)
 
